@@ -1,9 +1,25 @@
 package com.kortexai.framework.chain
 
-/**
- * Interface para encadeamentos de execução (chains).
- * Permite definir pipelines que combinem LLMs, ferramentas e memória.
- */
 interface Chain {
-    suspend fun run(prompt: String): String
+    suspend fun process(input: String): String
+}
+
+class SequentialChain(private val chains: List<Chain>) : Chain {
+    override suspend fun process(input: String): String {
+        var currentInput = input
+        chains.forEach { chain ->
+            currentInput = chain.process(currentInput)
+        }
+        return currentInput
+    }
+}
+
+class MapReduceChain(
+    private val mapChains: List<Chain>,
+    private val reduceChain: Chain
+) : Chain {
+    override suspend fun process(input: String): String {
+        val mappedResults = mapChains.map { it.process(input) }
+        return reduceChain.process(mappedResults.joinToString("\n"))
+    }
 }
